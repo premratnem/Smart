@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2B6CB0">
+<title>Smart Self Triage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#2B6CB0; --brand-d:#1E4E8C; --brand-soft:#EBF2FB;
+    --bg:#F5F8FC; --card:#FFFFFF;
+    --ink:#1F2D3D; --muted:#5A6B7B; --line:#E3EAF2;
+    --red:#C0392B;   --red-bg:#FDEDEA;   --red-line:#F3C4BD;
+    --amber:#B9770E; --amber-bg:#FDF4E3; --amber-line:#F0DBA8;
+    --green:#1E8A5B; --green-bg:#E7F6EE; --green-line:#B4E0C8;
+    --fs:18px; --radius:14px;
+  }
+  body.hc{
+    --brand:#0B3D91; --brand-d:#082B66; --brand-soft:#E3ECFF;
+    --bg:#ffffff; --card:#ffffff; --ink:#000000; --muted:#1a1a1a; --line:#000000;
+    --red:#B00000; --red-bg:#ffffff; --red-line:#B00000;
+    --amber:#8A5A00; --amber-bg:#ffffff; --amber-line:#8A5A00;
+    --green:#00662E; --green-bg:#ffffff; --green-line:#00662E;
+  }
+  body.hc .card, body.hc .advice, body.hc .facility, body.hc .kbox,
+  body.hc .refs, body.hc .opt, body.hc .hotline, body.hc .mock{border-width:2px;}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:"Sarabun","Noto Sans Thai",-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.7; font-size:var(--fs); -webkit-text-size-adjust:100%;
+  }
+  a:focus-visible, button:focus-visible, summary:focus-visible, .opt:focus-visible{
+    outline:3px solid var(--brand); outline-offset:2px; border-radius:6px;
+  }
+  .app{max-width:620px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; background:var(--bg);}
+  /* แบนเนอร์สถานะการรับรอง (ของใหม่) */
+  .mock{
+    background:var(--amber-bg); color:var(--amber); border-bottom:2px solid var(--amber-line);
+    font-size:12.5px; font-weight:700; text-align:center; padding:8px 14px; line-height:1.5;
+  }
+  header{
+    background:var(--brand); color:#fff; padding:16px 20px; position:sticky; top:0; z-index:10;
+    box-shadow:0 2px 8px rgba(43,108,176,.18);
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand .mark{
+    flex:0 0 auto; height:48px; background:#fff; padding:5px 9px; border-radius:10px;
+    box-shadow:0 1px 4px rgba(0,0,0,.16);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .brand .mark img{display:block; height:100%; width:auto;}
+  .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
+  header h1{margin:0; font-size:22px; font-weight:800; letter-spacing:.3px;}
+  header p{margin:2px 0 0; font-size:12px; opacity:.9; font-weight:400;}
+  .a11y-bar{display:flex; align-items:center; gap:8px; margin-top:14px; flex-wrap:wrap;}
+  .a11y-bar .lbl{font-size:11.5px; opacity:.9; margin-right:2px;}
+  .a11y-btn{
+    min-width:40px; height:34px; padding:0 10px; border:1.5px solid rgba(255,255,255,.55); background:rgba(255,255,255,.12);
+    color:#fff; border-radius:8px; font-family:inherit; font-weight:700; cursor:pointer; font-size:13px; line-height:1;
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .a11y-btn[aria-pressed="true"]{background:#fff; color:var(--brand); border-color:#fff;}
+  .a11y-btn.big{font-size:16px;}
+  .progress{height:6px; background:rgba(255,255,255,.28); margin-top:14px; overflow:hidden; border-radius:6px;}
+  .progress > div{height:100%; background:#fff; width:0; transition:width .3s ease; border-radius:6px;}
+  main{flex:1; padding:22px 20px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:26px 22px; box-shadow:0 2px 10px rgba(43,108,176,.07);}
+  .step-count{font-size:.72em; color:var(--brand); margin-bottom:8px; font-weight:700; letter-spacing:.3px;}
+  .q-title{font-size:1.12em; font-weight:700; margin:0 0 6px; color:var(--ink); line-height:1.4;}
+  .q-sub{font-size:.78em; color:var(--muted); margin:0 0 20px;}
+  .opt{
+    display:flex; align-items:center; gap:14px; width:100%;
+    background:var(--card); border:1.5px solid var(--line); border-radius:12px;
+    padding:17px 18px; margin-bottom:12px; cursor:pointer; min-height:44px;
+    font-size:.92em; text-align:left; color:var(--ink); transition:all .15s; font-family:inherit;
+  }
+  .opt:active{transform:scale(.995);}
+  .opt.sel{border-color:var(--brand); background:var(--brand-soft); box-shadow:inset 0 0 0 1px var(--brand);}
+  .opt .box{
+    flex:0 0 24px; height:24px; border:2px solid #BBC8D8; border-radius:6px;
+    display:flex; align-items:center; justify-content:center; font-size:15px; color:#fff; transition:all .15s;
+  }
+  .opt.sel .box{background:var(--brand); border-color:var(--brand);}
+  .opt.single .box{border-radius:50%;}
+  .opt.flag.sel{border-color:var(--red); background:var(--red-bg); box-shadow:inset 0 0 0 1px var(--red);}
+  .opt.flag.sel .box{background:var(--red); border-color:var(--red);}
+  .opt .ohint{display:block; font-size:.8em; color:var(--muted); font-weight:400; margin-top:2px;}
+  /* รูปภาพประกอบตัวเลือก (ใช้ในคำถามสัญญาณอันตราย) */
+  .opt .othumb{
+    flex:0 0 56px; width:56px; height:56px; border-radius:10px; overflow:hidden;
+    background:var(--red-bg); border:1.5px solid var(--red-line);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .opt .othumb img{width:100%; height:100%; object-fit:contain; display:block;}
+  .opt.has-img{align-items:center;}
+  .opt.flag.sel .othumb{border-color:var(--red);}
+  body.hc .opt .othumb{border-width:2px;}
+  body.hc .opt .othumb img{filter:brightness(.55) contrast(1.3);}
+  .nav{display:flex; gap:12px; margin-top:26px;}
+  button.btn{
+    flex:1; border:none; border-radius:12px; padding:17px; font-size:.95em; font-weight:700;
+    cursor:pointer; font-family:inherit; transition:all .15s; letter-spacing:.2px; min-height:44px;
+  }
+  .btn-primary{background:var(--brand); color:#fff; box-shadow:0 2px 6px rgba(43,108,176,.25);}
+  .btn-primary:disabled{background:#B5C3D4; box-shadow:none; cursor:not-allowed;}
+  .btn-primary:not(:disabled):active{background:var(--brand-d);}
+  .btn-ghost{flex:0 0 auto; background:var(--brand-soft); color:var(--brand-d); padding:17px 22px; border:1.5px solid var(--line);}
+  .btn-block{width:100%; flex:none;}
+  /* result */
+  .result-banner{border-radius:var(--radius); padding:22px 20px; margin-bottom:18px; display:flex; align-items:center; gap:16px;}
+  .result-banner .level-tag{flex:0 0 56px; height:56px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:800; color:#fff;}
+  .result-banner .rtext h2{margin:0 0 3px; font-size:1.08em; line-height:1.35;}
+  .result-banner .rtext p{margin:0; font-size:.78em; font-weight:600; opacity:.92;}
+  .lv-red{background:var(--red-bg); color:var(--red); border:1.5px solid var(--red-line);}
+  .lv-red .level-tag{background:var(--red);}
+  .lv-amber{background:var(--amber-bg); color:var(--amber); border:1.5px solid var(--amber-line);}
+  .lv-amber .level-tag{background:var(--amber);}
+  .lv-green{background:var(--green-bg); color:var(--green); border:1.5px solid var(--green-line);}
+  .lv-green .level-tag{background:var(--green);}
+  .alert-strong{
+    background:var(--red); color:#fff; border-radius:var(--radius); padding:20px;
+    margin-bottom:16px; display:flex; gap:14px; align-items:flex-start;
+    box-shadow:0 4px 14px rgba(192,57,43,.3); animation:pulse 1.6s ease-in-out infinite;
+  }
+  .alert-strong .ai{flex:0 0 34px; height:34px; border:3px solid #fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px;}
+  .alert-strong .at{font-size:.92em; font-weight:700; line-height:1.5;}
+  @keyframes pulse{0%,100%{box-shadow:0 4px 14px rgba(192,57,43,.3);} 50%{box-shadow:0 4px 22px rgba(192,57,43,.55);}}
+  @media (prefers-reduced-motion: reduce){ .alert-strong{animation:none;} .fade{animation:none;} }
+  .advice{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px;}
+  .advice h3{margin:0 0 12px; font-size:.86em; color:var(--brand-d); padding-bottom:10px; border-bottom:1px solid var(--line);}
+  .advice ul{margin:0; padding-left:20px;} .advice li{margin-bottom:10px; font-size:.84em;}
+  .reasons{font-size:.78em; color:var(--muted); background:var(--brand-soft); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:16px;}
+  .reasons b{color:var(--ink); display:block; margin-bottom:8px; font-size:1.03em;}
+  .trace{font-size:.68em; color:var(--muted); margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); word-break:break-all;}
+  .call{display:flex; align-items:center; justify-content:center; gap:10px; text-decoration:none; text-align:center; background:var(--red); color:#fff; font-weight:800; font-size:1.05em; padding:18px; border-radius:12px; margin-bottom:16px; letter-spacing:.3px; min-height:44px;}
+  .call .num{font-size:1.3em;}
+  .disclaimer{font-size:.7em; color:var(--muted); background:var(--brand-soft); border:1px solid var(--line); border-radius:12px; padding:15px 17px; line-height:1.65;}
+  .disclaimer b{color:var(--ink);}
+  .facility{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px;}
+  .facility h3{margin:0 0 14px; font-size:.86em; color:var(--brand-d); padding-bottom:10px; border-bottom:1px solid var(--line);}
+  .btn-find{width:100%; border:none; background:var(--brand); color:#fff; font-family:inherit; font-weight:700; font-size:.9em; padding:16px; border-radius:12px; cursor:pointer; letter-spacing:.2px; min-height:44px;}
+  .facility-note{font-size:.72em; color:var(--muted); margin:12px 2px 0; line-height:1.6;}
+  .hotlines{display:flex; flex-direction:column; gap:10px; margin-top:16px;}
+  .hotline{display:flex; align-items:center; gap:14px; text-decoration:none; background:var(--brand-soft); border:1px solid var(--line); border-radius:12px; padding:14px 16px; min-height:44px;}
+  .hl-num{flex:0 0 auto; font-size:1.1em; font-weight:800; color:var(--brand-d); letter-spacing:.5px;}
+  .hl-label{font-size:.72em; color:var(--ink); line-height:1.4;}
+  .know-wrap{margin-bottom:16px;}
+  .know-title{font-size:.86em; margin:0 0 11px; color:var(--brand-d); padding-bottom:9px; border-bottom:2px solid var(--brand); display:inline-block;}
+  .kbox{background:var(--card); border:1px solid var(--line); border-left:4px solid var(--brand); border-radius:10px; padding:16px 18px; margin-bottom:11px;}
+  .khead{font-weight:700; font-size:.84em; margin-bottom:7px; color:var(--brand-d);}
+  .kbody{font-size:.8em; color:var(--ink); line-height:1.75;}
+
+  /* ===== หน้าสัญญาณอันตราย แบบรูปภาพประกอบ (visual, เข้าใจง่าย) ===== */
+  .danger-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;}
+  @media (max-width:380px){ .danger-grid{grid-template-columns:1fr;} }
+  .dcard{
+    background:var(--card); border:2px solid var(--red-line); border-radius:16px;
+    padding:0 0 14px; text-align:center; display:flex; flex-direction:column;
+    align-items:center; overflow:hidden; box-shadow:0 2px 10px rgba(192,57,43,.08);
+  }
+  .dcard .ill{
+    width:100%; aspect-ratio:1/1; background:var(--red-bg);
+    display:flex; align-items:center; justify-content:center; margin-bottom:12px;
+    border-bottom:2px solid var(--red-line); padding:14px;
+  }
+  .dcard .ill img{width:100%; height:100%; object-fit:contain; display:block;}
+  .dcard .dtitle{font-weight:800; font-size:.92em; color:var(--red); line-height:1.4; margin:0 10px 6px;}
+  .dcard .ddesc{font-size:.76em; color:var(--muted); line-height:1.55; margin:0 10px;}
+  body.hc .dcard{border-width:3px;}
+  body.hc .dcard .ill{border-bottom-width:3px;}
+  /* คอนทราสต์สูง: เพิ่มความเข้มของเส้นไอคอนให้คมชัดขึ้น */
+  body.hc .dcard .ill img{filter:brightness(.55) contrast(1.3);}
+  .attr{text-align:center; font-size:.66em; color:var(--muted); margin:-6px 0 16px;}
+  .attr a{color:var(--brand); text-decoration:underline;}
+  .refs{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px 18px; margin-bottom:16px;}
+  .refs summary{cursor:pointer; font-weight:700; font-size:.78em; padding:14px 0; color:var(--brand-d);}
+  .reflist{margin:0 0 14px; padding-left:4px; list-style:none;}
+  .reflist li{font-size:.68em; color:var(--muted); line-height:1.6; margin-bottom:10px;}
+  .refnum{color:var(--brand); font-weight:700; margin-right:4px;}
+  .followup{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px;}
+  .followup h3{margin:0 0 12px; font-size:.86em; color:var(--brand-d); padding-bottom:10px; border-bottom:1px solid var(--line);}
+  .followup ul{margin:0; padding-left:20px;} .followup li{margin-bottom:10px; font-size:.84em;}
+  footer{text-align:center; font-size:.64em; color:var(--muted); padding:18px 16px; line-height:1.6;}
+  .intro h2{margin:4px 0 14px; font-size:1.2em; color:var(--brand-d); line-height:1.4;}
+  .intro .lead{font-size:.88em; color:var(--ink);}
+  .intro ul{padding-left:20px; margin:14px 0;} .intro li{margin-bottom:10px; font-size:.84em;}
+  .home-btn{display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:var(--card); border:1.5px solid var(--line); border-radius:12px; padding:18px; margin-bottom:12px; cursor:pointer; font-family:inherit; color:var(--ink); font-size:.95em; font-weight:700; min-height:44px;}
+  .home-btn .hic{flex:0 0 30px; font-size:1.3em; text-align:center;}
+  .home-btn small{display:block; font-weight:400; color:var(--muted); font-size:.78em;}
+  .home-btn.danger{border-color:var(--red-line); color:var(--red);}
+
+  /* ===== หน้าแรกสไตล์โมบายล์ (hero) ===== */
+  .hero{
+    text-align:center; padding:0;
+    background:linear-gradient(180deg,#EAF2FB 0%, #F5F8FC 60%, var(--bg) 100%);
+  }
+  .hero-title{
+    margin:0; font-weight:800; letter-spacing:.5px; line-height:1.08;
+    font-size:2em; text-transform:uppercase;
+    background:linear-gradient(90deg,#1E6FD0,#1E4E8C);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero-sub{margin:8px 0 0; font-size:.82em; color:var(--muted); font-weight:600; letter-spacing:.3px;}
+  .hero-logo{
+    width:min(300px,78%); margin:8px auto 4px;
+    display:flex; align-items:center; justify-content:center;
+    filter:drop-shadow(0 10px 20px rgba(30,78,140,.16));
+  }
+  .hero-logo img{width:100%; height:auto; display:block;}
+  body.hc .hero-title{color:var(--brand-d); -webkit-text-fill-color:var(--brand-d);}
+
+  /* การ์ดสถานพยาบาลใกล้เคียง */
+  .nearby{
+    display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:12px 14px; margin:18px 0 16px; cursor:pointer; font-family:inherit;
+    color:var(--ink); box-shadow:0 4px 14px rgba(30,78,140,.08);
+  }
+  .nearby .nb-text{flex:1; font-weight:700; font-size:.9em; line-height:1.35;}
+  .nearby .nb-text small{display:block; font-weight:400; color:var(--muted); font-size:.82em; margin-top:2px;}
+  .nearby .nb-map{
+    flex:0 0 92px; height:56px; border-radius:10px; position:relative; overflow:hidden;
+    background:
+      linear-gradient(90deg, transparent 46%, #CBD8E6 46%, #CBD8E6 50%, transparent 50%),
+      linear-gradient(0deg, transparent 60%, #CBD8E6 60%, #CBD8E6 63%, transparent 63%),
+      #E8EFF6;
+  }
+  .nearby .nb-pin{position:absolute; top:50%; left:50%; transform:translate(-50%,-60%); font-size:20px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));}
+
+  /* ปุ่ม CTA หลัก */
+  .cta{
+    width:100%; border:none; cursor:pointer; font-family:inherit; color:#fff;
+    font-weight:800; font-size:1.02em; letter-spacing:.5px; text-transform:uppercase;
+    padding:18px; border-radius:40px; min-height:56px;
+    background:linear-gradient(90deg,#2B6CB0,#1E4E8C);
+    box-shadow:0 8px 22px rgba(30,78,140,.32);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .cta:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(30,78,140,.28);}
+  body.hc .cta{background:var(--brand); border:2px solid var(--ink);}
+
+  /* bottom navigation */
+  .tabbar{
+    position:sticky; bottom:0; z-index:10; display:flex; background:var(--card);
+    border-top:1px solid var(--line); box-shadow:0 -2px 10px rgba(30,78,140,.06);
+    padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  }
+  .tabbar button{
+    flex:1; background:none; border:none; cursor:pointer; font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    color:var(--muted); font-size:11px; font-weight:600; padding:6px 0;
+  }
+  .tabbar button .ti{font-size:19px; line-height:1;}
+  .tabbar button.active{color:var(--brand);}
+  .tabbar button.active .ti{transform:translateY(-1px);}
+
+  .fade{animation:fade .22s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:none;}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="mock" id="envBanner" role="note">
+    กำลังตรวจสอบสถานะชุดกฎ…
+  </div>
+  <header>
+    <div class="brand">
+      <div class="mark">
+        <img src="logo.png" alt="โลโก้ Smart Self Triage" width="269" height="203">
+      </div>
+      <div>
+        <h1>Smart Self Triage</h1>
+      </div>
+    </div>
+    <div class="a11y-bar" role="group" aria-label="การตั้งค่าการเข้าถึง">
+      <span class="lbl">ขนาดตัวอักษร</span>
+      <button class="a11y-btn" onclick="setFont(-1)" aria-label="ลดขนาดตัวอักษร">A−</button>
+      <button class="a11y-btn big" onclick="setFont(0)" aria-label="ขนาดตัวอักษรปกติ">A</button>
+      <button class="a11y-btn" onclick="setFont(1)" aria-label="เพิ่มขนาดตัวอักษร">A+</button>
+      <button class="a11y-btn" id="hcBtn" onclick="toggleContrast()" aria-pressed="false" aria-label="สลับโหมดคอนทราสต์สูง">คอนทราสต์สูง</button>
+    </div>
+    <div class="progress"><div id="bar"></div></div>
+  </header>
+  <main id="main"></main>
+  <footer>ใช้เพื่อการประเมินเบื้องต้นเท่านั้น หากไม่แน่ใจหรือมีอาการรุนแรง โปรดไปสถานพยาบาลที่ใกล้ที่สุด หรือโทร 1669</footer>
+  <nav class="tabbar" aria-label="เมนูหลัก">
+    <button id="tab-home" class="active" onclick="renderIntro()"><span class="ti" aria-hidden="true">🏠</span>หน้าแรก</button>
+    <button id="tab-history" onclick="renderSelfcare()"><span class="ti" aria-hidden="true">🕑</span>ดูแลตนเอง</button>
+    <button id="tab-settings" onclick="renderDanger()"><span class="ti" aria-hidden="true">⚠️</span>สัญญาณอันตราย</button>
+  </nav>
+</div>
+
+<!-- Engine + config + ชุดกฎ production (deterministic + versioned + governance) -->
+<script src="triage-engine.js"></script>
+<script src="config.js"></script>
+<script src="rulesets.js"></script>
+<script>
+/* ============================================================
+   UI LAYER — แยกจาก logic การประเมินโดยสมบูรณ์
+   การประเมินทั้งหมดเรียกผ่าน TriageEngine.evaluate(answers, ruleSet, opts)
+   - RUN_ENV มาจาก config.js (จุดสลับ environment กลางที่เดียว)
+   - RULESET มาจาก rulesets.js (ชุดกฎ production; จะเป็น approved/production
+     ก็ต่อเมื่อผู้เชี่ยวชาญคลินิกลงนามอนุมัติแล้วเท่านั้น)
+   ============================================================ */
+var RUN_ENV = (window.TriageConfig && window.TriageConfig.RUN_ENV) || "test";
+var RULESET = (window.ProductionRuleSets && window.ProductionRuleSets.RULESET) || null;
+
+/* ตรวจสถานะชุดกฎครั้งเดียวตอนโหลด — ใช้คุม guard + ข้อความแบนเนอร์ */
+var GATE = (function () {
+  try {
+    if (!RULESET) return { ok: false, reason: "ไม่พบชุดกฎ (rulesets.js ไม่ได้โหลด)" };
+    var vErr = TriageEngine.validateRuleSet(RULESET);
+    if (vErr.length) return { ok: false, reason: "ชุดกฎไม่ผ่านการตรวจสอบโครงสร้าง" };
+    var g = TriageEngine.assertUsable(RULESET, RUN_ENV);
+    if (!g.usable) return { ok: false, reason: g.reason };
+    return { ok: true, reason: "" };
+  } catch (e) {
+    return { ok: false, reason: (e && e.message) || String(e) };
+  }
+})();
+
+/* แบนเนอร์สถานะ: สะท้อนสถานะจริงของชุดกฎ + environment */
+(function setEnvBanner() {
+  var el = document.getElementById("envBanner");
+  if (!el) return;
+  if (RUN_ENV === "production" && GATE.ok) {
+    el.textContent = "โหมดใช้งานจริง — ชุดกฎที่อนุมัติแล้ว (" +
+      (RULESET.id + "@" + RULESET.version) + ")";
+    el.style.background = "var(--green-bg)";
+    el.style.color = "var(--green)";
+    el.style.borderBottomColor = "var(--green-line)";
+  } else if (RUN_ENV === "production" && !GATE.ok) {
+    el.textContent = "โหมด production ถูกร้องขอ แต่ชุดกฎยังไม่ผ่านการอนุมัติ — ระบบจะไม่ประเมินจนกว่าจะมีชุดกฎที่อนุมัติ";
+    el.style.background = "var(--red-bg)";
+    el.style.color = "var(--red)";
+    el.style.borderBottomColor = "var(--red-line)";
+  } else {
+    el.textContent = "โหมดทดสอบ — ใช้ชุดกฎที่ยังไม่รับรองทางคลินิก (environment=test) ห้ามใช้ตัดสินใจจริง";
+  }
+})();
+
+/* คำถาม 5 ข้อ — answer keys ตรงกับ field ในชุดกฎ engine
+   (redflag, main, onset, severity, risk) และค่าตรงกับที่กฎใช้ */
+var QUESTIONS = [
+  {
+    id:'redflag', type:'multi',
+    title:'ขณะนี้ท่านมีสัญญาณเตือนอันตรายข้อใดบ้าง',
+    sub:'ตรวจสัญญาณอันตรายก่อนเสมอ เลือกได้มากกว่า 1 ข้อ หากไม่มี โปรดเลือก "ไม่มีข้อใด"',
+    flag:true,
+    options:[
+      {v:'breath', label:'หายใจไม่ออก หอบมาก หรือริมฝีปากเขียวซีด', img:'img/danger/breathing.svg'},
+      {v:'chest',  label:'เจ็บแน่นหน้าอกรุนแรง หรือร้าวไปแขนและกราม', img:'img/danger/chest-pain.svg'},
+      {v:'stroke', label:'ปากเบี้ยว แขนขาอ่อนแรง หรือพูดไม่ชัดอย่างเฉียบพลัน', img:'img/danger/stroke.svg'},
+      {v:'unconscious', label:'ชัก ซึมลง หรือเรียกแล้วไม่รู้สึกตัว', img:'img/danger/unconscious.svg'},
+      {v:'bleed',  label:'อาเจียนหรือถ่ายเป็นเลือด หรือเลือดออกไม่หยุด', img:'img/danger/bleeding.svg'},
+      {v:'none',   label:'ไม่มีอาการดังกล่าวข้างต้น', clears:true},
+    ]
+  },
+  {
+    id:'main', type:'single',
+    title:'ขณะนี้ท่านมีอาการสำคัญในกลุ่มใดมากที่สุด',
+    sub:'โปรดเลือก 1 ข้อที่ตรงกับอาการมากที่สุด',
+    options:[
+      {v:'resp',  label:'เหนื่อย หายใจลำบาก หรือไอ'},
+      {v:'chest', label:'เจ็บหรือแน่นหน้าอก'},
+      {v:'neuro', label:'เวียนศีรษะ ปวดศีรษะ หรืออ่อนแรง'},
+      {v:'gi',    label:'ปวดท้อง คลื่นไส้อาเจียน หรือถ่ายเหลว'},
+      {v:'fever', label:'มีไข้ หรือตัวร้อน'},
+      {v:'pain',  label:'ปวดตามร่างกาย หรืออาการอื่น ๆ'},
+    ]
+  },
+  {
+    id:'onset', type:'single',
+    title:'อาการเป็นมานานเพียงใด และมีแนวโน้มอย่างไร',
+    sub:'โปรดเลือก 1 ข้อ หากไม่แน่ใจ ให้เลือกข้อสุดท้าย',
+    options:[
+      {v:'acute',  label:'เพิ่งเป็นอย่างเฉียบพลัน และกำลังแย่ลงอย่างรวดเร็ว'},
+      {v:'stable', label:'เป็นมา 1–3 วัน อาการคงที่หรือค่อย ๆ ดีขึ้น'},
+      {v:'mild',   label:'เป็นเพียงเล็กน้อย ยังทำกิจวัตรได้ตามปกติ'},
+      {v:'unknown',label:'ไม่แน่ใจ หรือประเมินไม่ได้', hint:'ระบบจะเลือกแนวทางที่ปลอดภัยไว้ก่อน'},
+    ]
+  },
+  {
+    id:'severity', type:'single',
+    title:'ความรุนแรงของอาการในขณะนี้',
+    sub:'ประเมินจากความรู้สึกและผลกระทบต่อการใช้ชีวิต',
+    options:[
+      {v:'severe', label:'รุนแรงมาก ทรมาน หรือลุกเดิน รับประทานอาหารไม่ไหว'},
+      {v:'mod',    label:'ปานกลาง รบกวนการใช้ชีวิตพอสมควร'},
+      {v:'mild',   label:'เล็กน้อย พอทนได้ ยังใช้ชีวิตได้ตามปกติ'},
+      {v:'unknown',label:'ไม่แน่ใจ หรือประเมินไม่ได้', hint:'ระบบจะเลือกแนวทางที่ปลอดภัยไว้ก่อน'},
+    ]
+  },
+  {
+    id:'risk', type:'multi',
+    title:'ท่านมีปัจจัยเสี่ยงข้อใดบ้าง',
+    sub:'เลือกได้มากกว่า 1 ข้อ หากไม่มี โปรดเลือก "ไม่มีข้อใด"',
+    options:[
+      {v:'age',    label:'อายุมากกว่า 65 ปี หรือเป็นเด็กเล็กกว่า 5 ปี'},
+      {v:'chronic',label:'มีโรคประจำตัว เช่น หัวใจ ปอด เบาหวาน ไต หรือมะเร็ง'},
+      {v:'preg',   label:'กำลังตั้งครรภ์'},
+      {v:'hifever',label:'ไข้สูงเกิน 39 องศาเซลเซียส หรือไข้นานเกิน 3 วัน'},
+      {v:'none',   label:'ไม่มีอาการดังกล่าวข้างต้น', clears:true},
+    ]
+  },
+];
+
+/* map outcome ของ engine (5 ค่า) -> การแสดงผล 3 ระดับสำหรับประชาชน */
+var OUTCOME_VIEW = {
+  emergency: {
+    cls:'lv-red', num:'1', head:'เร่งด่วน ควรไปโรงพยาบาลทันที', tag:'ระดับที่ 1 : ภาวะฉุกเฉิน',
+    showCall:true, group:'red',
+    advice:[
+      'โทรแจ้งสายด่วนการแพทย์ฉุกเฉิน 1669 หรือไปห้องฉุกเฉินที่ใกล้ที่สุดโดยทันที',
+      'ไม่ควรขับรถด้วยตนเอง และควรมีผู้ดูแลอยู่ด้วยตลอดเวลา',
+      'เตรียมรายการยาที่ใช้ประจำและประวัติการแพ้ยาไปแสดงต่อเจ้าหน้าที่',
+      'หากผู้ป่วยไม่รู้สึกตัวหรือไม่หายใจ ให้โทร 1669 และเริ่มการช่วยฟื้นคืนชีพทันที',
+    ]
+  },
+  urgent: {
+    cls:'lv-amber', num:'2', head:'ควรได้รับการประเมินโดยเร็ว', tag:'ระดับที่ 2 : เร่งด่วน ควรพบบุคลากรโดยเร็ว',
+    showCall:false, group:'amber',
+    advice:[
+      'ควรเข้าพบแพทย์หรือพยาบาลที่สถานพยาบาลโดยเร็วที่สุดในวันนี้',
+      'เฝ้าสังเกตอาการอย่างใกล้ชิด หากอาการแย่ลง ให้ไปห้องฉุกเฉินทันที',
+      'หลีกเลี่ยงการอยู่ตามลำพัง และเตรียมผู้ช่วยเหลือหากอาการเปลี่ยนแปลง',
+      'บันทึกอาการ ช่วงเวลาที่เกิดอาการ และยาที่ใช้ เพื่อแจ้งต่อบุคลากร',
+    ]
+  },
+  see_professional: {
+    cls:'lv-amber', num:'2', head:'ควรให้บุคลากรทางการแพทย์ประเมิน', tag:'ระดับที่ 2 : ข้อมูลไม่พอ แนะนำให้ประเมินโดยบุคลากร',
+    showCall:false, group:'amber',
+    advice:[
+      'ข้อมูลที่ให้ยังไม่เพียงพอต่อการสรุปอย่างปลอดภัย จึงแนะนำให้พบบุคลากรทางการแพทย์',
+      'สามารถประเมินซ้ำเมื่อมีข้อมูลชัดเจนขึ้น หรือปรึกษาสถานพยาบาลใกล้บ้าน',
+      'หากอาการแย่ลงหรือมีสัญญาณอันตราย ให้ไปห้องฉุกเฉินทันที',
+    ]
+  },
+  see_doctor: {
+    cls:'lv-amber', num:'2', head:'ควรเข้าพบแพทย์ภายใน 1 วัน', tag:'ระดับที่ 2 : ควรรีบเข้ารับการตรวจ',
+    showCall:false, group:'amber',
+    advice:[
+      'ควรเข้าพบแพทย์หรือพยาบาลที่สถานพยาบาลภายในวันนี้',
+      'เฝ้าสังเกตอาการ หากแย่ลงให้ไปโรงพยาบาลทันที',
+      'พักผ่อนให้เพียงพอ ดื่มน้ำให้เหมาะสม และหลีกเลี่ยงการอยู่ตามลำพัง',
+      'บันทึกอาการและยาที่ใช้ เพื่อแจ้งต่อแพทย์',
+    ]
+  },
+  self_care: {
+    cls:'lv-green', num:'3', head:'ดูแลตนเองที่บ้านและเฝ้าสังเกตอาการได้', tag:'ระดับที่ 3 : ดูแลตนเองที่บ้าน',
+    showCall:false, group:'green',
+    advice:[
+      'พักผ่อนให้เพียงพอ ดื่มน้ำให้มาก และรับประทานอาหารที่ย่อยง่าย',
+      'เฝ้าสังเกตอาการ 1–2 วัน หากไม่ดีขึ้นหรือมีอาการแย่ลง ควรเข้าพบแพทย์',
+      'หากเกิดสัญญาณเตือนอันตราย เช่น หายใจลำบาก เจ็บหน้าอก หรือซึมลง ให้ไปโรงพยาบาลทันที',
+    ]
+  },
+};
+
+/* กล่องความรู้ (จำลอง) — เลือกตาม flag ที่สร้างจากคำตอบ */
+var KNOWLEDGE = {
+  stroke:{title:'เหตุผลที่อาการโรคหลอดเลือดสมองต้องได้รับการประเมินโดยเร็ว',
+    body:'สังเกตตามหลัก F.A.S.T. (หน้าเบี้ยว แขนอ่อนแรง พูดลำบาก และรีบขอความช่วยเหลือ) หากเกิดเฉียบพลันควรไปโรงพยาบาลให้เร็วที่สุด (เนื้อหาจำลอง)'},
+  chest:{title:'เหตุผลที่อาการเจ็บแน่นหน้าอกต้องได้รับการประเมินโดยเร็ว',
+    body:'เจ็บแน่นหน้าอกรุนแรง ร้าวไปแขนหรือกราม ร่วมกับเหงื่อแตก อาจเป็นหัวใจขาดเลือดเฉียบพลัน ควรโทร 1669 ทันที (เนื้อหาจำลอง)'},
+  breath:{title:'เหตุผลที่อาการหายใจลำบากต้องเฝ้าระวัง',
+    body:'หอบเหนื่อยมากขณะพัก พูดเป็นประโยคไม่ได้ หรือริมฝีปากเขียว เป็นสัญญาณออกซิเจนไม่พอ ต้องประเมินทันที (เนื้อหาจำลอง)'},
+  conscious:{title:'เหตุผลที่อาการชัก ซึมลง หรือไม่รู้สึกตัวต้องได้รับการช่วยเหลือโดยด่วน',
+    body:'อาจเกิดจากความผิดปกติของสมอง หัวใจ น้ำตาลในเลือด หรือการติดเชื้อรุนแรง หากไม่หายใจให้เริ่ม CPR และโทร 1669 (เนื้อหาจำลอง)'},
+  gi:{title:'กรณีที่อาการทางระบบทางเดินอาหารจัดเป็นภาวะเร่งด่วน',
+    body:'อาเจียน/ถ่ายเป็นเลือด ปวดท้องรุนแรงเฉียบพลัน หรือขาดน้ำรุนแรง ควรไปโรงพยาบาล ส่วนท้องเสียทั่วไปให้จิบ ORS ป้องกันขาดน้ำ (เนื้อหาจำลอง)'},
+  fever:{title:'ลักษณะของไข้ที่ควรเข้าพบแพทย์',
+    body:'ไข้สูงมาก ไข้นานเกิน 3 วัน หรือมีอาการเตือนร่วม เช่น ซึมลง หอบเหนื่อย ชัก หรืออยู่ในกลุ่มเสี่ยง ควรพบแพทย์ (เนื้อหาจำลอง)'},
+};
+
+var REFERENCES = [
+  'Siriraj Stroke Fast Track',
+  'ESI 5 ระดับ / University Triage Manual',
+  'STEMI ER Siriraj',
+  'NS-00-3-221 แนวปฏิบัติการคัดกรองพยาบาล',
+  'สายด่วนการแพทย์ฉุกเฉิน 1669 (สพฉ.)',
+];
+
+var state = { step:0, answers:{} };
+var mainEl = document.getElementById('main');
+var bar = document.getElementById('bar');
+var TOTAL = QUESTIONS.length;
+
+function setBar(){
+  var pct = state.step === -1 ? 0 : Math.round((state.step)/TOTAL*100);
+  bar.style.width = (state.step>=TOTAL ? 100 : pct) + '%';
+}
+
+function renderIntro(){
+  state.step = -1; setBar(); setActiveTab('tab-home');
+  mainEl.innerHTML =
+    '<div class="hero fade">' +
+      '<h1 class="sr-only">Smart Self Triage — AI-Powered Health Guidance</h1>' +
+    '</div>' +
+    '<div class="card fade intro">' +
+      '<h2>การประเมินอาการเบื้องต้น</h2>' +
+      '<p class="lead">โปรดตอบคำถามจำนวน 5 ข้อ เพื่อช่วยประเมินระดับความเร่งด่วนในการรับการรักษาและแนะนำแนวทางที่เหมาะสมสำหรับคุณ</p>' +
+      '<ul><li>ใช้เวลาตอบประมาณ 1 นาที</li><li>โปรดตอบตามอาการ "ในขณะนี้" ให้ตรงที่สุด</li>' +
+      '<li>ระบบคำนึงถึงความปลอดภัยเป็นหลัก หากไม่แน่ใจจะแนะนำให้พบบุคลากรทางการแพทย์</li></ul>' +
+      '<div class="disclaimer" style="margin-top:16px; color:var(--red); font-size:.92em; line-height:1.7"><b style="color:var(--red)">คำชี้แจง:</b> ต้นแบบนี้ใช้กฎและข้อมูล<b style="color:var(--red)">จำลอง</b> ' +
+      '<b style="color:var(--red)">ยังไม่ผ่านการรับรองทางคลินิก</b> ไม่ใช่การวินิจฉัยทางการแพทย์ หากสงสัยภาวะฉุกเฉิน โทร <b style="color:var(--red)">1669</b> ทันที</div>' +
+    '</div>' +
+    '<button class="cta" onclick="startQuiz()" style="margin-top:18px">เริ่มการประเมิน</button>' +
+    '<button class="home-btn" onclick="renderSelfcare()" style="margin-top:12px"><span class="hic">🏠</span><span>วิธีดูแลตนเองเบื้องต้น<small>คำแนะนำตามกลุ่มอาการ</small></span></button>' +
+    '<button class="home-btn danger" onclick="renderDanger()"><span class="hic">⚠</span><span>สัญญาณอันตราย<small>อาการที่ต้องไปโรงพยาบาลทันที</small></span></button>';
+}
+
+function renderQuestion(){
+  var q = QUESTIONS[state.step];
+  setBar();
+  var cur = state.answers[q.id];
+  var opts = q.options.map(function(o){
+    var sel = (q.type==='single') ? cur===o.v : (isArr(cur) && cur.indexOf(o.v)!==-1);
+    var isFlagOpt = q.flag && o.v!=='none';
+    var check = q.type==='single' ? '●' : '✓';
+    var thumb = o.img
+      ? '<span class="othumb"><img src="'+o.img+'" alt="" aria-hidden="true" loading="lazy" decoding="async"></span>'
+      : '';
+    return '<button class="opt '+(q.type==='single'?'single':'')+' '+(isFlagOpt?'flag':'')+' '+(o.img?'has-img':'')+' '+(sel?'sel':'')+'" '+
+      'onclick="pick(\''+q.id+'\',\''+o.v+'\','+(o.clears?'true':'false')+')">'+
+      '<span class="box">'+(sel?check:'')+'</span>'+
+      thumb +
+      '<span>'+o.label+(o.hint?'<span class="ohint">'+o.hint+'</span>':'')+'</span></button>';
+  }).join('');
+  var canNext = (q.type==='single') ? !!cur : (isArr(cur) && cur.length>0);
+  // ถ้าอยู่ข้อ 1 และเลือกสัญญาณอันตรายไว้ -> การกดจะข้ามไปหน้าผล "ฉุกเฉิน" ทันที
+  var rfShortcut = (state.step===0 && hasRedFlag());
+  var nextLabel = (state.step===TOTAL-1 || rfShortcut) ? 'ดูผลการประเมิน' : 'ถัดไป';
+  var rfNote = rfShortcut
+    ? '<p class="q-sub" style="color:var(--red);margin:14px 0 0"><b>ตรวจพบสัญญาณอันตราย</b> — ระบบจะแสดงผลเป็นภาวะฉุกเฉินทันที โดยไม่ต้องตอบคำถามที่เหลือ</p>'
+    : '';
+  mainEl.innerHTML =
+    '<div class="card fade">' +
+      '<div class="step-count">คำถามที่ '+(state.step+1)+' จาก '+TOTAL+'</div>' +
+      '<h2 class="q-title">'+q.title+'</h2><p class="q-sub">'+q.sub+'</p>'+opts+ rfNote +
+      '<div class="nav">' +
+        (state.step>0?'<button class="btn btn-ghost" onclick="prev()">ย้อนกลับ</button>':'<button class="btn btn-ghost" onclick="renderIntro()">หน้าแรก</button>') +
+        '<button class="btn btn-primary" '+(canNext?'':'disabled')+' onclick="next()">'+nextLabel+'</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function isArr(x){ return Object.prototype.toString.call(x)==='[object Array]'; }
+
+function pick(qid, val, clears){
+  var q = QUESTIONS[findQ(qid)];
+  if (q.type==='single'){ state.answers[qid]=val; }
+  else {
+    var arr = isArr(state.answers[qid]) ? state.answers[qid].slice() : [];
+    if (clears){ arr = arr.indexOf(val)!==-1 ? [] : [val]; }
+    else {
+      arr = arr.filter(function(v){ var opt=qOpt(q,v); return !(opt&&opt.clears); });
+      if (arr.indexOf(val)!==-1) arr = arr.filter(function(v){return v!==val;});
+      else arr.push(val);
+    }
+    state.answers[qid]=arr;
+  }
+  renderQuestion();
+}
+function findQ(id){ for(var i=0;i<QUESTIONS.length;i++){ if(QUESTIONS[i].id===id) return i; } return -1; }
+function qOpt(q,v){ for(var i=0;i<q.options.length;i++){ if(q.options[i].v===v) return q.options[i]; } return null; }
+
+/* ตรวจว่าคำตอบข้อ redflag มีสัญญาณอันตราย (ไม่นับตัวเลือก "ไม่มีข้อใด") หรือไม่ */
+function hasRedFlag(){
+  var q = QUESTIONS[0]; // ข้อแรกคือ redflag
+  if (!q || q.id!=='redflag') return false;
+  var ans = state.answers.redflag;
+  if (!isArr(ans)) return false;
+  for (var i=0;i<ans.length;i++){
+    var opt = qOpt(q, ans[i]);
+    if (opt && !opt.clears) return true; // red flag จริง (ไม่ใช่ "ไม่มีข้อใด")
+  }
+  return false;
+}
+
+function next(){
+  // RED-FLAG-FIRST (R3.2): ถ้าข้อ 1 มีสัญญาณอันตราย ให้ข้ามคำถามที่เหลือ
+  // แล้วไปหน้าผลประเมิน "ฉุกเฉิน" ทันที โดยไม่ต้องตอบข้อถัด ๆ ไป
+  if (state.step===0 && hasRedFlag()){ renderResult(); return; }
+  if(state.step<TOTAL-1){ state.step++; renderQuestion(); } else { renderResult(); }
+}
+function prev(){ if(state.step>0){ state.step--; renderQuestion(); } }
+function startQuiz(){
+  // Guard: ไม่เริ่มประเมินถ้าชุดกฎใช้งานไม่ได้ (fail-safe ตาม R10.2 / R7.4)
+  if (!GATE.ok){ renderGateBlocked(); return; }
+  state.step=0; state.answers={}; renderQuestion();
+}
+
+/* หน้าปฏิเสธอย่างปลอดภัย — เมื่อชุดกฎยังใช้งานใน environment ปัจจุบันไม่ได้ */
+function renderGateBlocked(){
+  state.step=-1; setBar(); setActiveTab('tab-home');
+  mainEl.innerHTML =
+    '<div class="card fade">' +
+      '<div class="result-banner lv-red" role="alert">' +
+        '<div class="level-tag" aria-hidden="true">!</div>' +
+        '<div class="rtext"><h2>ยังไม่สามารถเริ่มการประเมินได้</h2>' +
+        '<p>ชุดกฎยังไม่พร้อมใช้งานในโหมดนี้</p></div></div>' +
+      '<p class="q-sub" style="margin-top:14px">' + (GATE.reason || '') + '</p>' +
+      '<div class="disclaimer" style="margin-top:14px"><b>เพื่อความปลอดภัย</b> ระบบจะไม่ประเมินด้วยชุดกฎที่ยังไม่ได้รับการอนุมัติทางคลินิกในโหมดใช้งานจริง ' +
+      'หากมีอาการเร่งด่วนหรือสงสัยภาวะฉุกเฉิน โปรดโทร <b>1669</b> หรือไปสถานพยาบาลที่ใกล้ที่สุดทันที</div>' +
+      '<a class="call" style="margin-top:14px" href="tel:1669"><span class="num">1669</span> สายด่วนการแพทย์ฉุกเฉิน</a>' +
+      '<div class="nav"><button class="btn btn-ghost btn-block" onclick="renderIntro()">กลับหน้าแรก</button></div>' +
+    '</div>';
+}
+
+/* สร้าง flag สำหรับเลือกกล่องความรู้ จากคำตอบ (UI สร้าง ไม่ใช่ engine) */
+function deriveFlags(a){
+  var rf = isArr(a.redflag)?a.redflag:[];
+  var flags = {};
+  if (rf.indexOf('stroke')!==-1 || a.main==='neuro') flags.stroke=1;
+  if (rf.indexOf('chest')!==-1 || a.main==='chest') flags.chest=1;
+  if (rf.indexOf('breath')!==-1 || a.main==='resp') flags.breath=1;
+  if (rf.indexOf('unconscious')!==-1) flags.conscious=1;
+  if (rf.indexOf('bleed')!==-1 || a.main==='gi') flags.gi=1;
+  if (a.main==='fever' || (isArr(a.risk)&&a.risk.indexOf('hifever')!==-1)) flags.fever=1;
+  return flags;
+}
+
+function findFacility(query){
+  openMapsSearch(query);
+}
+
+/* ---------- Google Maps integration (ไม่ใช้ API key / ไม่ส่งข้อมูลสุขภาพ) ----------
+   เปิด Google Maps ค้นหาตามคำค้น โดยถ้าผู้ใช้อนุญาตตำแหน่งจะค้นรอบตำแหน่งนั้น
+   ถ้าไม่อนุญาต/ไม่รองรับ จะ fallback เป็นการค้นหาทั่วไป (ไม่ล็อกการใช้งาน)
+   ใช้ Google Maps Search URL มาตรฐาน:
+     https://www.google.com/maps/search/?api=1&query=<q>
+   ส่งเฉพาะคำค้นประเภทสถานพยาบาล + พิกัด ไม่ส่งอาการหรือผลประเมินใด ๆ */
+function buildMapsUrl(query, lat, lng){
+  var base = 'https://www.google.com/maps/search/?api=1&query=';
+  var q = query;
+  if (typeof lat === 'number' && typeof lng === 'number'){
+    q = query + ' ' + lat.toFixed(5) + ',' + lng.toFixed(5);
+  }
+  return base + encodeURIComponent(q);
+}
+
+function openMapsSearch(query, onDone){
+  function go(url){ try{ window.open(url, '_blank', 'noopener'); }catch(e){ location.href = url; } if(onDone) onDone(); }
+  if (navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(
+      function(pos){ go(buildMapsUrl(query, pos.coords.latitude, pos.coords.longitude)); },
+      function(){ go(buildMapsUrl(query)); },
+      { enableHighAccuracy:false, timeout:8000, maximumAge:300000 }
+    );
+  } else {
+    go(buildMapsUrl(query));
+  }
+}
+
+function renderResult(){
+  // Guard ซ้ำชั้นสุดท้าย: ไม่สรุปผลถ้าชุดกฎใช้งานไม่ได้
+  if (!GATE.ok){ renderGateBlocked(); return; }
+  state.step = TOTAL; setBar();
+
+  // *** เรียก engine แยกไฟล์ (deterministic + versioned + governance) ***
+  var res;
+  try {
+    res = TriageEngine.evaluate(state.answers, RULESET, { environment: RUN_ENV });
+  } catch (e) {
+    mainEl.innerHTML = '<div class="card"><h2 class="q-title">เกิดข้อผิดพลาด</h2><p>'+(e.message||e)+'</p>'+
+      '<div class="nav"><button class="btn btn-primary" onclick="renderIntro()">กลับหน้าแรก</button></div></div>';
+    return;
+  }
+
+  var V = OUTCOME_VIEW[res.outcome] || OUTCOME_VIEW.see_professional;
+  var adv = V.advice.map(function(x){return '<li>'+x+'</li>';}).join('');
+  var rs = res.reasons.map(function(x){return '<li>'+x+'</li>';}).join('');
+
+  var flags = deriveFlags(state.answers);
+  var kboxes = Object.keys(flags).map(function(f){ return KNOWLEDGE[f]; }).filter(Boolean)
+    .map(function(k){ return '<div class="kbox"><div class="khead">'+k.title+'</div><div class="kbody">'+k.body+'</div></div>'; }).join('');
+
+  var fac = {
+    red:{q:'ห้องฉุกเฉิน โรงพยาบาล', btn:'ค้นหาห้องฉุกเฉิน / โรงพยาบาลที่ใกล้ที่สุด', note:'กรณีฉุกเฉิน การโทร 1669 เพื่อเรียกรถพยาบาลเป็นวิธีที่ปลอดภัยและรวดเร็วที่สุด'},
+    amber:{q:'โรงพยาบาล คลินิก', btn:'ค้นหาโรงพยาบาล / คลินิกใกล้บ้าน', note:'เลือกสถานพยาบาลตามสิทธิการรักษาของท่านเพื่อความสะดวก'},
+    green:{q:'ร้านยา คลินิก โรงพยาบาล', btn:'ค้นหาสถานพยาบาล / ร้านยาใกล้บ้าน', note:'หากต้องการคำปรึกษาเพิ่มเติม สามารถสอบถามเภสัชกรหรือสถานพยาบาลใกล้บ้านได้'},
+  }[V.group];
+
+  var refList = REFERENCES.map(function(r,i){ return '<li><span class="refnum">['+(i+1)+']</span> '+r+'</li>'; }).join('');
+
+  var html = '<div class="fade">';
+  if (V.group==='red'){
+    html += '<div class="alert-strong" role="alert"><span class="ai" aria-hidden="true">!</span>'+
+      '<span class="at">อาการของท่านอาจเป็นภาวะฉุกเฉิน โปรดรีบไปโรงพยาบาลหรือโทร 1669 ทันที</span></div>';
+  }
+  html += '<div class="result-banner '+V.cls+'" role="'+(V.group==='red'?'alert':'status')+'" aria-live="polite">'+
+    '<div class="level-tag" aria-hidden="true">'+V.num+'</div><div class="rtext"><h2>'+V.head+'</h2><p>'+V.tag+'</p></div></div>';
+  if (V.showCall){ html += '<a class="call" href="tel:1669"><span class="num">1669</span> โทรแจ้งสายด่วนการแพทย์ฉุกเฉิน</a>'; }
+  html += '<div class="advice"><h3>คำแนะนำในการปฏิบัติตัว</h3><ul>'+adv+'</ul></div>';
+
+  // หน้าติดตามอาการ (ของใหม่) — แสดงเมื่อไม่ใช่ฉุกเฉิน
+  if (V.group!=='red'){
+    html += '<div class="followup"><h3>การติดตามอาการ</h3><ul>'+
+      '<li>สังเกตอาการเป็นระยะ หากอาการ<strong>แย่ลง</strong>หรือเกิดสัญญาณอันตราย ให้ยกระดับการดูแลทันทีโดยไม่ต้องรอ</li>'+
+      '<li>หากครบช่วงเวลาติดตามแล้วอาการยังไม่ดีขึ้น ควรประเมินซ้ำหรือพบบุคลากรทางการแพทย์</li>'+
+      '</ul><div class="nav"><button class="btn btn-ghost btn-block" onclick="renderDanger()">ดูสัญญาณอันตรายที่ต้องรีบไปโรงพยาบาล</button></div></div>';
+  }
+
+  html += '<div class="facility"><h3>ค้นหาสถานพยาบาลใกล้บ้าน</h3>'+
+    '<button class="btn-find" onclick="findFacility(\''+fac.q+'\')">'+fac.btn+'</button>'+
+    '<p class="facility-note">'+fac.note+'</p>'+
+    '<div class="hotlines">'+
+      '<a class="hotline" href="tel:1669"><span class="hl-num">1669</span><span class="hl-label">สายด่วนการแพทย์ฉุกเฉิน (สพฉ.)</span></a>'+
+      '<a class="hotline" href="tel:1330"><span class="hl-num">1330</span><span class="hl-label">สายด่วน สปสช. สอบถามสิทธิและหน่วยบริการ</span></a>'+
+    '</div></div>';
+
+  html += '<div class="reasons"><b>เหตุผลประกอบการประเมิน</b><ul style="margin:0;padding-left:18px;">'+rs+'</ul></div>';
+
+  if (kboxes){ html += '<div class="know-wrap"><h3 class="know-title">ความรู้และเหตุผลเชิงอ้างอิง</h3>'+kboxes+'</div>'; }
+
+  html += '<details class="refs"><summary>แหล่งอ้างอิง</summary><ol class="reflist">'+refList+'</ol></details>';
+
+  html += '<div class="disclaimer"><b>ข้อควรทราบ:</b> ผลนี้คำนวณจาก<b>กฎจำลอง</b>ที่ยังไม่ผ่านการรับรองทางคลินิก '+
+    'เป็นการประเมินเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัย และไม่รับประกันว่าท่านปลอดภัยหรือไม่จำเป็นต้องพบแพทย์ '+
+    'หากอาการแย่ลงหรือสงสัยภาวะฉุกเฉิน โทร <b>1669</b> ทันที</div>';
+
+  html += '<div class="nav"><button class="btn btn-primary" onclick="renderIntro()">ประเมินใหม่อีกครั้ง</button></div></div>';
+
+  mainEl.innerHTML = html;
+}
+
+/* ไฮไลต์แท็บล่างให้ตรงหน้าปัจจุบัน */
+function setActiveTab(id){
+  var ids = ['tab-home','tab-history','tab-settings'];
+  for (var i=0;i<ids.length;i++){
+    var el = document.getElementById(ids[i]);
+    if (el){ if (ids[i]===id) el.classList.add('active'); else el.classList.remove('active'); }
+  }
+}
+
+/* หน้าสถานพยาบาลใกล้เคียง (จำลอง) */
+function renderFacilities(){
+  state.step=-1; setBar(); setActiveTab('tab-home');
+  // แต่ละประเภทผูกกับคำค้นบน Google Maps (กดแล้วค้นหาใกล้ตำแหน่งผู้ใช้ได้จริง)
+  var list = [
+    ['🏥','ห้องฉุกเฉิน / โรงพยาบาล','เปิดแผนที่ค้นหาโรงพยาบาลและห้องฉุกเฉินใกล้ตัว','ห้องฉุกเฉิน โรงพยาบาล'],
+    ['🏩','คลินิกเวชกรรม','เปิดแผนที่ค้นหาคลินิกใกล้ตัว','คลินิกเวชกรรม'],
+    ['💊','ร้านยา','เปิดแผนที่ค้นหาร้านยาใกล้ตัว','ร้านขายยา'],
+  ];
+  var rows = list.map(function(x){
+    return '<button class="home-btn" style="align-items:flex-start" onclick="openMapsSearch(\''+x[3]+'\')">'+
+      '<span class="hic">'+x[0]+'</span>'+
+      '<span>'+x[1]+'<small>'+x[2]+'</small></span></button>';
+  }).join('');
+  mainEl.innerHTML = '<div class="card fade"><h2 class="q-title">สถานพยาบาลใกล้เคียง</h2>'+
+    '<p class="q-sub">กดเพื่อเปิด Google Maps ค้นหาสถานพยาบาลใกล้ตำแหน่งของท่าน หากอนุญาตให้เข้าถึงตำแหน่ง ระบบจะค้นหารอบตัวท่าน หากไม่อนุญาต จะเปิดการค้นหาทั่วไป</p>'+
+    '<button class="btn-find" onclick="openMapsSearch(\'โรงพยาบาล คลินิก สถานพยาบาล\')">ค้นหาสถานพยาบาลใกล้ฉันบน Google Maps</button>'+
+    '</div>'+
+    '<div class="card">'+rows+'</div>'+
+    '<div class="card"><a class="call" href="tel:1669"><span class="num">1669</span> กรณีฉุกเฉิน โทรสายด่วนการแพทย์</a></div>'+
+    '<p class="facility-note" style="padding:0 4px">ตำแหน่งของท่านถูกใช้เพื่อเปิดแผนที่ค้นหาเท่านั้น ไม่มีการจัดเก็บหรือส่งต่อข้อมูลตำแหน่งและอาการ</p>'+
+    '<div class="nav"><button class="btn btn-ghost btn-block" onclick="renderIntro()">กลับหน้าแรก</button></div>';
+}
+
+/* หน้าดูแลตนเอง (จำลอง) */
+function renderSelfcare(){
+  state.step=-1; setBar(); setActiveTab('tab-history');
+  var items = [
+    {t:'เหนื่อย / ไอ / หายใจลำบาก', warn:['หายใจไม่ออก พูดเป็นประโยคไม่ได้','ริมฝีปากหรือปลายมือเขียว'], doo:['พักในที่อากาศถ่ายเท นั่งหลังตรง','ดื่มน้ำอุ่นเป็นระยะ'], avoid:['อยู่ในที่ควัน ฝุ่น หรืออากาศปิด']},
+    {t:'ปวดท้อง / ถ่ายเหลว / อาเจียน', warn:['ถ่ายหรืออาเจียนเป็นเลือด','ปวดท้องรุนแรงขึ้นเรื่อย ๆ'], doo:['จิบน้ำหรือสารละลายเกลือแร่ (ORS) ทีละน้อย','กินอาหารอ่อนย่อยง่าย'], avoid:['อาหารรสจัด มัน หรือนมช่วงท้องเสีย']},
+    {t:'ไข้ / ตัวร้อน', warn:['ซึมลง สับสน ปลุกตื่นยาก','ชัก หรือหายใจเร็วผิดปกติ'], doo:['พักผ่อน ดื่มน้ำมาก ๆ','เช็ดตัวด้วยน้ำอุณหภูมิห้อง'], avoid:['ห่มผ้าหนาจนระบายความร้อนไม่ได้']},
+  ];
+  var blocks = items.map(function(s){
+    return '<details class="refs" style="padding:4px 18px"><summary>'+s.t+'</summary>'+
+      '<p style="font-size:.84em"><b>สัญญาณที่ต้องไปโรงพยาบาล</b></p><ul style="font-size:.84em">'+s.warn.map(function(w){return '<li>'+w+'</li>';}).join('')+'</ul>'+
+      '<p style="font-size:.84em"><b>ควรทำ</b></p><ul style="font-size:.84em">'+s.doo.map(function(d){return '<li>'+d+'</li>';}).join('')+'</ul>'+
+      '<p style="font-size:.84em"><b>ควรหลีกเลี่ยง</b></p><ul style="font-size:.84em">'+s.avoid.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul></details>';
+  }).join('');
+  mainEl.innerHTML = '<div class="card fade"><h2 class="q-title">วิธีดูแลตนเองเบื้องต้น</h2>'+
+    '<p class="q-sub">เนื้อหาจำลองเพื่อสาธิต ไม่ครอบคลุมทุกกรณี และไม่ใช่คำแนะนำการใช้ยา หากไม่แน่ใจให้ปรึกษาบุคลากร</p></div>'+
+    blocks +
+    '<div class="card"><a class="call" href="tel:1669"><span class="num">1669</span> หากมีสัญญาณอันตราย โทรทันที</a></div>'+
+    '<div class="nav"><button class="btn btn-ghost btn-block" onclick="renderIntro()">กลับหน้าแรก</button></div>';
+}
+
+/* หน้าสัญญาณอันตราย */
+function renderDanger(){
+  state.step=-1; setBar(); setActiveTab('tab-settings');
+
+  /* Pictogram เฉพาะอาการ (วาดเองในสไตล์ไอคอนเส้นทางการแพทย์)
+     สื่ออาการตรงตัว ดูแล้วเข้าใจทันทีว่าเป็นอาการใด เก็บใน dist/img/danger/
+     แต่ละรายการ: [ไฟล์ภาพ, หัวข้ออาการ, คำอธิบาย] */
+  var IMG = 'img/danger/';
+  var d = [
+    ['stroke.svg',     'ปากเบี้ยว แขนขาอ่อนแรง พูดไม่ชัดเฉียบพลัน','สัญญาณโรคหลอดเลือดสมอง — ยิ่งเร็วยิ่งดี'],
+    ['chest-pain.svg', 'เจ็บแน่นหน้าอกรุนแรง ร้าวไปแขนหรือกราม','สงสัยหัวใจขาดเลือดเฉียบพลัน'],
+    ['breathing.svg',  'หายใจไม่ออก หอบรุนแรง ริมฝีปากเขียว','ภาวะหายใจลำบากขั้นวิกฤต'],
+    ['unconscious.svg','หมดสติ ปลุกไม่ตื่น หรือชักเกร็ง','ภาวะคุกคามชีวิต'],
+    ['bleeding-mouth.svg','เลือดออกไม่หยุด หรืออาเจียน/ถ่ายเป็นเลือดมาก','เสียเลือดมาก อาจช็อก'],
+    ['fever.svg',      'ไข้สูงร่วมกับซึมลง สับสน หรือชัก','ภาวะติดเชื้อรุนแรง'],
+  ];
+  var cards = d.map(function(x){
+    return '<div class="dcard">'+
+             '<div class="ill"><img src="'+IMG+x[0]+'" alt="'+x[1]+'" loading="lazy" decoding="async"></div>'+
+             '<p class="dtitle">'+x[1]+'</p>'+
+             '<p class="ddesc">'+x[2]+'</p>'+
+           '</div>';
+  }).join('');
+
+  mainEl.innerHTML = '<div class="card fade"><h2 class="q-title">สัญญาณอันตราย</h2>'+
+    '<p class="q-sub">หากมีอาการตามรูปภาพด้านล่าง ให้โทร 1669 หรือไปห้องฉุกเฉินทันที โดยไม่ต้องรอผลประเมิน (รายการจำลอง)</p></div>'+
+    '<div class="danger-grid">'+cards+'</div>'+
+    '<div class="card"><a class="call" href="tel:1669"><span class="num">1669</span> โทรแจ้งสายด่วนการแพทย์ฉุกเฉิน</a></div>'+
+    '<div class="nav"><button class="btn btn-ghost btn-block" onclick="renderIntro()">กลับหน้าแรก</button></div>';
+}
+
+/* Accessibility: ขนาดอักษร + คอนทราสต์สูง (จำค่าใน localStorage) */
+var FONT_STEPS = [16,18,20,23]; var fontIdx = 1;
+function applyFont(){ document.documentElement.style.setProperty('--fs', FONT_STEPS[fontIdx]+'px'); try{localStorage.setItem('triage_font',String(fontIdx));}catch(e){} }
+function setFont(dir){ if(dir===0) fontIdx=1; else fontIdx=Math.max(0,Math.min(FONT_STEPS.length-1,fontIdx+dir)); applyFont(); }
+function toggleContrast(){ var on=document.body.classList.toggle('hc'); var b=document.getElementById('hcBtn'); if(b)b.setAttribute('aria-pressed',on?'true':'false'); try{localStorage.setItem('triage_hc',on?'1':'0');}catch(e){} }
+function restorePrefs(){ try{ var f=localStorage.getItem('triage_font'); if(f!==null) fontIdx=Math.max(0,Math.min(FONT_STEPS.length-1,parseInt(f,10)||1)); if(localStorage.getItem('triage_hc')==='1'){ document.body.classList.add('hc'); var b=document.getElementById('hcBtn'); if(b)b.setAttribute('aria-pressed','true'); } }catch(e){} applyFont(); }
+
+restorePrefs();
+renderIntro();
+</script>
+</body>
+</html>
